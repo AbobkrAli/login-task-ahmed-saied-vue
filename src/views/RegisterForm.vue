@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto max-w-[500px] flex flex-col items-center bg-white rounded-lg p-6 relative min-h-[600px]"  dir="rtl">
+  <div class="container mx-auto max-w-[500px] flex flex-col items-center bg-white rounded-lg p-6 relative min-h-[600px]" dir="rtl">
     <!-- Step Indicators -->
     <div class="steps mb-6 flex justify-between w-full relative">
       <div
@@ -18,46 +18,51 @@
       <div :key="step" class="form-step">
         <PersonalInfo
           v-if="step === 1"
-          :name="name"
-          :email="email"
-          :phone="phone"
+          :name="name.value"
+          :email="email.value"
+          :phone="phone.value"
           :errors="errors"
-          @update:name="name = $event"
-          @update:email="email = $event"
-          @update:phone="phone = $event"
+          @update:name="updateName"
+          @update:email="updateEmail"
+          @update:phone="updatePhone"
           @nextStep="handleNextStep"
         />
         <AddressInfo
           v-if="step === 2"
-          :street="street"
-          :city="city"
-          :state="state"
-          :zip="zip"
+          :street="street.value"
+          :city="city.value"
+          :state="state.value"
+          :zip="zip.value"
           :errors="errors"
-          @update:street="street = $event"
-          @update:city="city = $event"
-          @update:state="state = $event"
-          @update:zip="zip = $event"
+          @update:street="updateStreet"
+          @update:city="updateCity"
+          @update:state="updateState"
+          @update:zip="updateZip"
           @nextStep="handleNextStep"
           @prevStep="handlePrevStep"
         />
         <PaymentInfo
           v-if="step === 3"
-          :cardNumber="cardNumber"
-          :expiryDate="expiryDate"
-          :cvv="cvv"
+          :cardNumber="cardNumber.value"
+          :expiryDate="expiryDate.value"
+          :cvv="cvv.value"
           :errors="errors"
-          @update:cardNumber="cardNumber = $event"
-          @update:expiryDate="expiryDate = $event"
-          @update:cvv="cvv = $event"
+          @update:cardNumber="updateCardNumber"
+          @update:expiryDate="updateExpiryDate"
+          @update:cvv="updateCvv"
           @submit="handleSubmit"
           @prevStep="handlePrevStep"
         />
       </div>
     </transition>
+
+    <!-- Step Navigation Buttons -->
+    
   </div>
 </template>
+
 <script>
+import { ref } from 'vue';
 import PersonalInfo from '../components/PersonalInfo.vue';
 import AddressInfo from '../components/AddressInfo.vue';
 import PaymentInfo from '../components/PaymentInfo.vue';
@@ -68,114 +73,159 @@ export default {
     AddressInfo,
     PaymentInfo
   },
-  data() {
-    return {
-      step: 1,
-      name: '',
-      email: '',
-      phone: '',
-      street: '',
-      city: '',
-      state: '',
-      zip: '',
-      cardNumber: '',
-      expiryDate: '',
-      cvv: '',
-      errors: {},
-      slideDirection: 'slide-left',
-      indicatorWidth: '0' // Initial width for the first step
+  setup() {
+    
+    const step = ref(1);
+    const name = ref('');
+    const email = ref('');
+    const phone = ref('');
+    const street = ref('');
+    const city = ref('');
+    const state = ref('');
+    const zip = ref('');
+    const cardNumber = ref('');
+    const expiryDate = ref('');
+    const cvv = ref('');
+    const errors = ref({});
+    const slideDirection = ref('slide-left');
+
+    
+    const updateName = (value) => { name.value = value; };
+    const updateEmail = (value) => { email.value = value; };
+    const updatePhone = (value) => { phone.value = value; };
+    const updateStreet = (value) => { street.value = value; };
+    const updateCity = (value) => { city.value = value; };
+    const updateState = (value) => { state.value = value; };
+    const updateZip = (value) => { zip.value = value; };
+    const updateCardNumber = (value) => { cardNumber.value = value; };
+    const updateExpiryDate = (value) => { expiryDate.value = value; };
+    const updateCvv = (value) => { cvv.value = value; };
+
+    // Navigation methods
+    const handleNextStep = () => {
+      validateCurrentStep();
+      if (Object.keys(errors.value).length === 0) {
+        slideDirection.value = 'slide-right';
+        step.value++;
+      }
     };
-  },
-  methods: {
-    handleNextStep() {
-    this.validateCurrentStep();
-    if (Object.keys(this.errors).length === 0) {
-      this.slideDirection = 'slide-right'; // Change to 'slide-right' for next step
-      this.step++;
-    }
-  },
-  handlePrevStep() {
-    this.slideDirection = 'slide-left'; // Change to 'slide-left' for previous step
-    this.step--;
-  },
-  goToStep(targetStep) {
-    if (targetStep >= 1 && targetStep <= 3) {
-      this.slideDirection = targetStep > this.step ? 'slide-right' : 'slide-left'; // Adjust direction
-      this.step = targetStep;
-    }
-  },
-  beforeEnter(el) {
-    el.style.transform = this.slideDirection === 'slide-left' ? 'translateX(100%)' : 'translateX(-100%)';
-  },
-  enter(el, done) {
-    el.offsetHeight; // trigger reflow
-    el.style.transition = 'transform 0.5s ease';
-    el.style.transform = 'translateX(0)';
-    done();
-  },
-  leave(el, done) {
-    el.style.transition = 'transform 0.5s ease';
-    el.style.transform = this.slideDirection === 'slide-left' ? 'translateX(100%)' : 'translateX(-100%)';
-    done();
-  },
-    handleSubmit() {
-      this.validateCurrentStep();
-      if (Object.keys(this.errors).length === 0) {
-        // All validations passed, proceed with form submission
+
+    const handlePrevStep = () => {
+      slideDirection.value = 'slide-left';
+      step.value--;
+    };
+
+    const goToStep = (targetStep) => {
+      if (targetStep >= 1 && targetStep <= 3) {
+        slideDirection.value = targetStep > step.value ? 'slide-right' : 'slide-left';
+        step.value = targetStep;
+      }
+    };
+
+    // Form submission handling
+    const handleSubmit = () => {
+      validateCurrentStep();
+      if (Object.keys(errors.value).length === 0) {
         console.log('Form Submitted', {
-          name: this.name,
-          email: this.email,
-          phone: this.phone,
-          street: this.street,
-          city: this.city,
-          state: this.state,
-          zip: this.zip,
-          cardNumber: this.cardNumber,
-          expiryDate: this.expiryDate,
-          cvv: this.cvv
+          name: name.value,
+          email: email.value,
+          phone: phone.value,
+          street: street.value,
+          city: city.value,
+          state: state.value,
+          zip: zip.value,
+          cardNumber: cardNumber.value,
+          expiryDate: expiryDate.value,
+          cvv: cvv.value
         });
       }
-    },
-    goToStep(targetStep) {
-      if (targetStep >= 1 && targetStep <= 3) {
-        this.slideDirection = targetStep > this.step ? 'slide-left' : 'slide-right';
-        this.step = targetStep;
-      }
-    },
-    validateCurrentStep() {
-      this.errors = {};
-      
-      if (this.step === 1) {
-        if (!this.name) this.errors.name = 'الاسم مطلوب';
-        if (!this.email) this.errors.email = 'الايميل مطلوب';
-        if (!this.phone) this.errors.phone = 'الهاتف مطلوب';
+    };
+
+    // Validation method for the current step
+    const validateCurrentStep = () => {
+      errors.value = {};
+
+      if (step.value === 1) {
+        if (!name.value) errors.value.name = 'الاسم مطلوب';
+        if (!email.value) errors.value.email = 'الايميل مطلوب';
+        if (!phone.value) errors.value.phone = 'الهاتف مطلوب';
       }
       
-      if (this.step === 2) {
-        if (!this.street) this.errors.street = 'اسم الشارع مطلوب';
-        if (!this.city) this.errors.city = 'المدينة مطلوبة';
-        if (!this.state) this.errors.state = 'الولاية مطلوبة';
-        if (!this.zip) this.errors.zip = 'الرمز البريدي مطلوب';
+      if (step.value === 2) {
+        if (!street.value) errors.value.street = 'اسم الشارع مطلوب';
+        if (!city.value) errors.value.city = 'المدينة مطلوبة';
+        if (!state.value) errors.value.state = 'الولاية مطلوبة';
+        if (!zip.value) errors.value.zip = 'الرمز البريدي مطلوب';
       }
       
-      if (this.step === 3) {
-        if (!this.cardNumber) this.errors.cardNumber = 'رقم الفيزا مطلوب';
-        if (!this.expiryDate) this.errors.expiryDate = 'تاريخ انتهاء الصلاحية مطلوب';
-        if (!this.cvv) this.errors.cvv = 'رمز التحقق مطلوب';
+      if (step.value === 3) {
+        if (!cardNumber.value) errors.value.cardNumber = 'رقم الفيزا مطلوب';
+        if (!expiryDate.value) errors.value.expiryDate = 'تاريخ انتهاء الصلاحية مطلوب';
+        if (!cvv.value) errors.value.cvv = 'رمز التحقق مطلوب';
       }
-    },
+    };
+
+    // Transition methods
+    const beforeEnter = (el) => {
+      el.style.transform = slideDirection.value === 'slide-left' ? 'translateX(100%)' : 'translateX(-100%)';
+    };
+
+    const enter = (el, done) => {
+      el.offsetHeight; // trigger reflow
+      el.style.transition = 'transform 0.5s ease';
+      el.style.transform = 'translateX(0)';
+      done();
+    };
+
+    const leave = (el, done) => {
+      el.style.transition = 'transform 0.5s ease';
+      el.style.transform = slideDirection.value === 'slide-left' ? 'translateX(100%)' : 'translateX(-100%)';
+      done();
+    };
+
     
+    return {
+      step,
+      name,
+      email,
+      phone,
+      street,
+      city,
+      state,
+      zip,
+      cardNumber,
+      expiryDate,
+      cvv,
+      errors,
+      slideDirection,
+      handleNextStep,
+      handlePrevStep,
+      goToStep,
+      handleSubmit,
+      beforeEnter,
+      enter,
+      leave,
+      updateName,
+      updateEmail,
+      updatePhone,
+      updateStreet,
+      updateCity,
+      updateState,
+      updateZip,
+      updateCardNumber,
+      updateExpiryDate,
+      updateCvv
+    };
   }
 };
 </script>
+
 <style scoped>
 .container {
   position: relative;
   overflow: hidden;
   padding-top: 50px; /* Ensure enough space for step indicators */
 }
-
-
 
 .step {
   width: 30px;
@@ -221,5 +271,10 @@ export default {
 .slide-right-enter,
 .slide-right-leave-to {
   transform: translateX(100%);
+}
+
+/* Styles for step navigation buttons */
+.flex {
+  margin-top: 20px;
 }
 </style>
